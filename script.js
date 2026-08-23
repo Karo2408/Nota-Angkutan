@@ -49,6 +49,29 @@
     if (node) node.textContent = value && String(value).trim() !== "" ? value : "";
   }
 
+  function numberToWordsIndo(num) {
+    const units = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+    if (num < 12) return units[num];
+    if (num < 20) return units[num - 10] + " Belas";
+    if (num < 100) return units[Math.floor(num / 10)] + " Puluh" + (num % 10 !== 0 ? " " + units[num % 10] : "");
+    if (num < 200) return "Seratus" + (num - 100 !== 0 ? " " + numberToWordsIndo(num - 100) : "");
+    if (num < 1000) return units[Math.floor(num / 100)] + " Ratus" + (num % 100 !== 0 ? " " + numberToWordsIndo(num % 100) : "");
+    return num.toString();
+  }
+
+  function formatSelama(val) {
+    if (!val) return "";
+    const trimVal = String(val).trim();
+    const num = parseInt(trimVal, 10);
+    // Jika input hanya angka murni
+    if (!isNaN(num) && num > 0 && num.toString() === trimVal) {
+      const padded = num < 10 ? "0" + num : num.toString();
+      const spelled = numberToWordsIndo(num);
+      return `${padded} (${spelled}) Hari`;
+    }
+    return val; // Jika user mengisi manual teks "3 hari", biarkan saja
+  }
+
   // ---------- PREVIEW RENDER ----------
   function getFormValues() {
     const data = {};
@@ -77,8 +100,19 @@
       if (!isNaN(vNum)) totalVolume += vNum; else if (row.volume) volumeIsAllNumeric = false;
     });
 
-    const totalJumlahStr = jumlahIsAllNumeric && totalJumlah > 0 ? formatNumber(totalJumlah) : "";
-    const totalVolumeStr = volumeIsAllNumeric && totalVolume > 0 ? formatNumber(totalVolume) : "";
+    // Determine the unit for the total (use unit from first filled row, or dominant unit)
+    const satuanCounts = {};
+    rows.forEach(row => {
+      if (row.jumlah && row.satuanJumlah) {
+        satuanCounts[row.satuanJumlah] = (satuanCounts[row.satuanJumlah] || 0) + 1;
+      }
+    });
+    const dominantSatuan = Object.keys(satuanCounts).sort((a, b) => satuanCounts[b] - satuanCounts[a])[0] || "";
+
+    const totalJumlahStr = jumlahIsAllNumeric && totalJumlah > 0
+      ? formatNumber(totalJumlah) + (dominantSatuan ? " " + dominantSatuan : "")
+      : "";
+    const totalVolumeStr = volumeIsAllNumeric && totalVolume > 0 ? formatNumber(totalVolume) + " M³" : "";
 
     const ROWS_PAGE_1 = 6;
     const ROWS_PAGE_N = 18;
@@ -95,7 +129,7 @@
     while (remainingRows.length > 0 || pageNum === 1) {
       const isPage1 = (pageNum === 1);
       const limit = isPage1 ? ROWS_PAGE_1 : ROWS_PAGE_N;
-      
+
       const pageRows = remainingRows.splice(0, limit);
       const isLastPage = (remainingRows.length === 0);
 
@@ -122,12 +156,12 @@
         setText(pageNode, ".out-jenisIdentitas", data.jenisIdentitas);
         setText(pageNode, ".out-alatAngkut", data.alatAngkut);
         setText(pageNode, ".out-noPol", data.noPol);
-        
+
         setText(pageNode, ".out-namaPenerima", data.namaPenerima);
         setText(pageNode, ".out-alamatPenerima1", data.alamatPenerima1);
         setText(pageNode, ".out-alamatPenerima2", data.alamatPenerima2);
-        
-        setText(pageNode, ".out-selama", data.selama);
+
+        setText(pageNode, ".out-selama", formatSelama(data.selama));
         setText(pageNode, ".out-dariTanggal", formatTanggalIndo(data.dariTanggal));
         setText(pageNode, ".out-sampaiTanggal", formatTanggalIndo(data.sampaiTanggal));
       } else {
@@ -140,7 +174,7 @@
         const tr = document.createElement("tr");
         tr.appendChild(el("td", "col-nomor", String(rowStartIdx + idx + 1)));
         tr.appendChild(el("td", "col-jenis", row.jenis));
-        tr.appendChild(el("td", "col-jumlah", row.jumlah));
+        tr.appendChild(el("td", "col-jumlah", row.jumlah || ""));
         tr.appendChild(el("td", "col-volume", row.volume));
         tr.appendChild(el("td", "col-ket", row.keterangan));
         tbody.appendChild(tr);
@@ -154,12 +188,12 @@
       if (isLastPage) {
         setText(pageNode, ".out-totalJumlah", totalJumlahStr);
         setText(pageNode, ".out-totalVolume", totalVolumeStr);
-        
+
         const kota = (data.kotaTtd || "").trim();
         const tglLine = (kota ? kota + ", " : "") + todayIndo();
         setText(pageNode, ".out-tglTtd", tglLine);
         setText(pageNode, ".out-namaPemilik", data.namaPemilik || "Endi Suhendi");
-        
+
         // Catatan
         const catatanNode = pageNode.querySelector(".out-catatan");
         if (catatanNode) {
@@ -231,45 +265,6 @@
     }
   }
 
-  // --- Pinch / Wheel Zoom Events ---
-  let initialDistance = null;
-  let initialZoom = 1;
-
-  modalPreviewScroll.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault(); // Prevent standard browser pinch zoom
-      initialDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialZoom = currentZoom;
-    }
-  }, { passive: false });
-
-  modalPreviewScroll.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2 && initialDistance) {
-      e.preventDefault();
-      const currentDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const zoomFactor = currentDistance / initialDistance;
-      let newZoom = initialZoom * zoomFactor;
-      
-      if (newZoom > 2.0) newZoom = 2.0;
-      if (newZoom < 0.2) newZoom = 0.2;
-      
-      currentZoom = newZoom;
-      updateZoom();
-    }
-  }, { passive: false });
-
-  modalPreviewScroll.addEventListener("touchend", (e) => {
-    if (e.touches.length < 2) {
-      initialDistance = null;
-    }
-  });
-
   modalPreviewScroll.addEventListener("wheel", (e) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
@@ -290,12 +285,12 @@
       formError.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    
+
     // Auto-scale to fit window on open
     const padding = 48; // modal padding
     const maxDocWidth = 794;
     const availableWidth = window.innerWidth - padding;
-    
+
     if (availableWidth < maxDocWidth) {
       currentZoom = availableWidth / maxDocWidth;
     } else {
@@ -315,10 +310,10 @@
   document.getElementById("closeModalBtn").addEventListener("click", closeModal);
   document.getElementById("cancelDownloadBtn").addEventListener("click", closeModal);
   document.getElementById("modalBackdrop").addEventListener("click", closeModal);
-  
+
   document.getElementById("zoomInBtn").addEventListener("click", handleZoomIn);
   document.getElementById("zoomOutBtn").addEventListener("click", handleZoomOut);
-  
+
   document.getElementById("confirmDownloadBtn").addEventListener("click", downloadPDF);
 
   // ---------- ROW MANAGEMENT (TABEL ISI) ----------
@@ -327,6 +322,7 @@
       id: ++rowIdCounter,
       jenis: "",
       jumlah: "",
+      satuanJumlah: "BTG",
       volume: "",
       keterangan: ""
     }, initial || {});
@@ -342,7 +338,7 @@
       if (rows.length > 1) rows.pop();
     } else {
       rows = rows.filter(r => !checked.includes(r.id));
-      if (rows.length === 0) rows.push({ id: ++rowIdCounter, jenis: "", jumlah: "", volume: "", keterangan: "" });
+      if (rows.length === 0) rows.push({ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" });
     }
     renderRowEditor();
     renderPreview();
@@ -369,7 +365,38 @@
       headerWrap.appendChild(checkWrap);
 
       const jenisWrap = makeRowField(row, "jenis", "text", "Jenis Hasil Hutan", "field-full");
-      const jumlahWrap = makeRowField(row, "jumlah", "text", "Jumlah (Batang/Ikat)", "field-half");
+
+      // Jumlah + satuan dropdown
+      const jumlahWrap = el("div", "row-field field-half");
+      const jumlahLabel = el("label", "", "Jumlah");
+      const jumlahInputRow = el("div", "jumlah-input-row");
+      const jumlahInput = document.createElement("input");
+      jumlahInput.type = "text";
+      jumlahInput.value = row.jumlah;
+      jumlahInput.placeholder = "0";
+      jumlahInput.className = "jumlah-number-input";
+      jumlahInput.addEventListener("input", (e) => {
+        row.jumlah = e.target.value;
+        renderPreview();
+      });
+      const satuanSelect = document.createElement("select");
+      satuanSelect.className = "satuan-select";
+      [["BTG", "BTG (Batang)"], ["KPL", "KPL (Kapling)"], ["IKT", "IKT (Ikat)"]].forEach(([val, label]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = label;
+        if (row.satuanJumlah === val) opt.selected = true;
+        satuanSelect.appendChild(opt);
+      });
+      satuanSelect.addEventListener("change", (e) => {
+        row.satuanJumlah = e.target.value;
+        renderPreview();
+      });
+      jumlahInputRow.appendChild(jumlahInput);
+      jumlahInputRow.appendChild(satuanSelect);
+      jumlahWrap.appendChild(jumlahLabel);
+      jumlahWrap.appendChild(jumlahInputRow);
+
       const volumeWrap = makeRowField(row, "volume", "text", "Volume (SM)", "field-half");
       const ketWrap = makeRowField(row, "keterangan", "text", "Keterangan", "field-full");
 
@@ -405,7 +432,7 @@
     const originalLabel = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Memproses PDF...";
-    
+
     const cancelBtn = document.getElementById("cancelDownloadBtn");
     cancelBtn.disabled = true;
 
@@ -421,15 +448,15 @@
         format: "a4"
       });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      
+
       const pages = document.querySelectorAll("#pagesContainer .doc-sheet");
-      
+
       for (let i = 0; i < pages.length; i++) {
         if (i > 0) pdf.addPage();
-        
+
         // Kloning node untuk menghindari bug rendering CSS Transform & Modal
         const clone = pages[i].cloneNode(true);
-        
+
         // Posisikan clone di luar layar dengan style mentah
         Object.assign(clone.style, {
           position: "absolute",
@@ -440,7 +467,7 @@
           boxShadow: "none"
         });
         document.body.appendChild(clone);
-        
+
         const canvas = await html2canvas(clone, {
           scale: 3,
           backgroundColor: "#ffffff",
@@ -466,7 +493,7 @@
     } finally {
       // Restore transform
       pagesContainer.style.transform = oldTransform;
-      
+
       btn.disabled = false;
       btn.textContent = originalLabel;
       cancelBtn.disabled = false;
@@ -478,8 +505,6 @@
     setTimeout(() => {
       rows = [];
       rowIdCounter = 0;
-      addRow();
-      addRow();
       addRow();
       renderPreview();
       formError.textContent = "";
@@ -493,8 +518,6 @@
   form.addEventListener("input", renderPreview);
 
   // ---------- INIT ----------
-  addRow();
-  addRow();
   addRow();
   renderPreview();
 
