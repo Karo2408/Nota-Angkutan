@@ -183,16 +183,19 @@
             </div>
             <div class="field">
               <label for="namaPemilik">Nama Pemilik Hutan Hak <span class="req">*</span></label>
-              <input type="text" id="namaPemilik" name="namaPemilik" required>
+              <input type="text" id="namaPemilik" name="namaPemilik" value="Endi Suhendi" required>
             </div>
             <small class="hint">Tanggal pada tanda tangan otomatis terisi sesuai tanggal saat dokumen
               dibuat/diunduh.</small>
           </fieldset>
 
           <!-- ============ PANEL PREVIEW (SEKARANG DI MODAL) ============ -->
-          <div class="form-actions">
-            <button type="reset" id="resetBtn" class="btn btn--secondary">Reset Form</button>
-            <button type="button" id="previewBtn" class="btn btn--primary">Lihat & Download PDF</button>
+          <div class="form-actions-wrapper">
+            <div class="form-actions">
+              <button type="reset" id="resetBtn" class="btn btn--secondary">Reset Form</button>
+              <button type="button" id="previewBtn" class="btn btn--primary">Lihat & Download PDF</button>
+            </div>
+            <button type="button" id="downloadBlankBtn" class="btn btn--ghost" style="width: 100%; margin-top: 12px; padding: 12px; border-style: dashed;">Download File Mentah (Kosong)</button>
           </div>
           <p id="formError" class="form-error" role="alert" aria-live="polite"></p>
         </form>

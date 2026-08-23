@@ -192,7 +192,7 @@
         const kota = (data.kotaTtd || "").trim();
         const tglLine = (kota ? kota + ", " : "") + todayIndo();
         setText(pageNode, ".out-tglTtd", tglLine);
-        setText(pageNode, ".out-namaPemilik", data.namaPemilik || "Endi Suhendi");
+        setText(pageNode, ".out-namaPemilik", data.namaPemilik || "");
 
         // Catatan
         const catatanNode = pageNode.querySelector(".out-catatan");
@@ -464,7 +464,8 @@
           left: "-9999px",
           transform: "none",
           margin: "0",
-          boxShadow: "none"
+          boxShadow: "none",
+          width: "794px"
         });
         document.body.appendChild(clone);
 
@@ -472,7 +473,8 @@
           scale: 3,
           backgroundColor: "#ffffff",
           useCORS: true,
-          logging: false
+          logging: false,
+          windowWidth: 794
         });
 
         // Hapus clone setelah selesai
@@ -516,6 +518,83 @@
   document.getElementById("removeRowBtn").addEventListener("click", removeCheckedRows);
   form.addEventListener("reset", resetAll);
   form.addEventListener("input", renderPreview);
+
+  const downloadBlankBtn = document.getElementById("downloadBlankBtn");
+  if (downloadBlankBtn) {
+    downloadBlankBtn.addEventListener("click", async () => {
+      const btn = downloadBlankBtn;
+      const originalLabel = btn.textContent;
+      
+      const originalRows = [...rows];
+      const originalValues = getFormValues();
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "Menyiapkan File Mentah...";
+
+        Array.from(form.elements).forEach(el => {
+          if (el.name && !["radio", "checkbox", "button", "submit", "reset"].includes(el.type)) {
+            el.value = "";
+          }
+        });
+        rows = [{ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" }];
+        
+        renderPreview();
+        await new Promise(r => setTimeout(r, 100));
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("p", "pt", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pageNodes = document.querySelectorAll("#pagesContainer .doc-sheet");
+
+        for (let i = 0; i < pageNodes.length; i++) {
+          if (i > 0) pdf.addPage();
+          const clone = pageNodes[i].cloneNode(true);
+          Object.assign(clone.style, {
+            position: "absolute",
+            top: "-9999px",
+            left: "-9999px",
+            transform: "none",
+            margin: "0",
+            boxShadow: "none",
+            width: "794px"
+          });
+          document.body.appendChild(clone);
+
+          const canvas = await html2canvas(clone, {
+            scale: 3,
+            backgroundColor: "#ffffff",
+            useCORS: true,
+            logging: false,
+            windowWidth: 794
+          });
+          document.body.removeChild(clone);
+
+          const imgData = canvas.toDataURL("image/png");
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        }
+
+        pdf.save(`Nota-Angkutan-Kosong.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert("Gagal membuat file mentah.");
+      } finally {
+        Object.keys(originalValues).forEach(key => {
+          const el = form.elements[key];
+          if (el && !["radio", "checkbox", "button", "submit", "reset"].includes(el.type)) {
+            el.value = originalValues[key];
+          }
+        });
+        rows = originalRows;
+        renderRowEditor();
+        renderPreview();
+
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    });
+  }
 
   // ---------- INIT ----------
   addRow();
