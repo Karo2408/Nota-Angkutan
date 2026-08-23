@@ -201,6 +201,32 @@
         </form>
       </section>
 
+      <!-- ============ CONFIRM DOWNLOAD MODAL ============ -->
+      <div id="confirmModal" class="confirm-modal" aria-hidden="true">
+        <div class="confirm-modal__backdrop"></div>
+        <div class="confirm-modal__box">
+          <div class="confirm-modal__icon">📄</div>
+          <h3 class="confirm-modal__title" id="confirmModalTitle">Konfirmasi Download</h3>
+          <p class="confirm-modal__desc" id="confirmModalDesc">Apakah Anda yakin ingin mengunduh file ini?</p>
+          <div class="confirm-modal__actions">
+            <button type="button" id="confirmModalCancel" class="btn btn--secondary">Batal</button>
+            <button type="button" id="confirmModalOk" class="btn btn--primary">Ya, Download</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ LOADING OVERLAY ============ -->
+      <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-overlay__box">
+          <div class="loading-overlay__spinner"></div>
+          <p class="loading-overlay__label" id="loadingLabel">Memproses...</p>
+          <div class="loading-overlay__track">
+            <div class="loading-overlay__bar" id="loadingBar"></div>
+          </div>
+          <p class="loading-overlay__sub" id="loadingSub">Menyiapkan dokumen</p>
+        </div>
+      </div>
+
       <!-- ============ MODAL ============ -->
       <div id="previewModal" class="modal" aria-hidden="true">
         <div class="modal-backdrop" id="modalBackdrop"></div>

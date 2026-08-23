@@ -314,7 +314,7 @@
   document.getElementById("zoomInBtn").addEventListener("click", handleZoomIn);
   document.getElementById("zoomOutBtn").addEventListener("click", handleZoomOut);
 
-  document.getElementById("confirmDownloadBtn").addEventListener("click", downloadPDF);
+
 
   // ---------- ROW MANAGEMENT (TABEL ISI) ----------
   function addRow(initial) {
@@ -427,6 +427,64 @@
   }
 
   // ---------- DOWNLOAD PDF ----------
+  // ---------- CONFIRM + LOADING HELPERS ----------
+  const confirmModal = document.getElementById("confirmModal");
+  const confirmModalTitle = document.getElementById("confirmModalTitle");
+  const confirmModalDesc = document.getElementById("confirmModalDesc");
+  const confirmModalOk = document.getElementById("confirmModalOk");
+  const confirmModalCancel = document.getElementById("confirmModalCancel");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  const loadingLabel = document.getElementById("loadingLabel");
+  const loadingBar = document.getElementById("loadingBar");
+  const loadingSub = document.getElementById("loadingSub");
+
+  function showConfirm(title, desc) {
+    return new Promise((resolve) => {
+      confirmModalTitle.textContent = title;
+      confirmModalDesc.textContent = desc;
+      confirmModal.classList.add("active");
+      confirmModal.setAttribute("aria-hidden", "false");
+
+      function onOk() { cleanup(); resolve(true); }
+      function onCancel() { cleanup(); resolve(false); }
+      function onBackdrop(e) { if (e.target === confirmModal || e.target.classList.contains("confirm-modal__backdrop")) { cleanup(); resolve(false); } }
+
+      function cleanup() {
+        confirmModal.classList.remove("active");
+        confirmModal.setAttribute("aria-hidden", "true");
+        confirmModalOk.removeEventListener("click", onOk);
+        confirmModalCancel.removeEventListener("click", onCancel);
+        confirmModal.removeEventListener("click", onBackdrop);
+      }
+
+      confirmModalOk.addEventListener("click", onOk);
+      confirmModalCancel.addEventListener("click", onCancel);
+      confirmModal.addEventListener("click", onBackdrop);
+    });
+  }
+
+  function showLoading(label, sub) {
+    loadingLabel.textContent = label || "Memproses...";
+    loadingSub.textContent = sub || "Menyiapkan dokumen";
+    loadingBar.style.width = "0%";
+    loadingOverlay.classList.add("active");
+    loadingOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  function setProgress(percent, sub) {
+    loadingBar.style.width = Math.min(100, percent) + "%";
+    if (sub) loadingSub.textContent = sub;
+  }
+
+  function hideLoading() {
+    loadingBar.style.width = "100%";
+    setTimeout(() => {
+      loadingOverlay.classList.remove("active");
+      loadingOverlay.setAttribute("aria-hidden", "true");
+      loadingBar.style.width = "0%";
+    }, 400);
+  }
+
   async function downloadPDF() {
     const btn = document.getElementById("confirmDownloadBtn");
     const originalLabel = btn.textContent;
@@ -451,8 +509,14 @@
 
       const pages = document.querySelectorAll("#pagesContainer .doc-sheet");
 
+      showLoading("Membuat PDF...", "Menyiapkan halaman...");
+      setProgress(5, "Memulai proses...");
+
       for (let i = 0; i < pages.length; i++) {
         if (i > 0) pdf.addPage();
+
+        const progress = 10 + Math.round(((i + 0.5) / pages.length) * 80);
+        setProgress(progress, `Memproses halaman ${i + 1} dari ${pages.length}...`);
 
         // Kloning node untuk menghindari bug rendering CSS Transform & Modal
         const clone = pages[i].cloneNode(true);
@@ -486,11 +550,14 @@
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       }
 
+      setProgress(95, "Menyimpan file PDF...");
       const nomorNota = (document.getElementById("nomor").value || "nota").replace(/[\\/:*?"<>|]/g, "-");
       pdf.save(`Nota-Angkutan-${nomorNota}.pdf`);
+      hideLoading();
       closeModal();
     } catch (err) {
       console.error(err);
+      hideLoading();
       alert("Terjadi kesalahan saat membuat PDF. Silakan coba lagi.");
     } finally {
       // Restore transform
@@ -519,12 +586,27 @@
   form.addEventListener("reset", resetAll);
   form.addEventListener("input", renderPreview);
 
+      // Wire up confirm modal to Lanjut Download PDF btn in preview modal
+  document.getElementById("confirmDownloadBtn").addEventListener("click", async () => {
+    const confirmed = await showConfirm(
+      "Download PDF",
+      "Dokumen akan diunduh sebagai file PDF. Pastikan semua data sudah benar."
+    );
+    if (confirmed) downloadPDF();
+  });
+
   const downloadBlankBtn = document.getElementById("downloadBlankBtn");
   if (downloadBlankBtn) {
     downloadBlankBtn.addEventListener("click", async () => {
+      const confirmed = await showConfirm(
+        "Download File Mentah",
+        "File PDF kosong (blangko) tanpa isian akan diunduh. Data yang sudah Anda isi tidak akan hilang."
+      );
+      if (!confirmed) return;
+
       const btn = downloadBlankBtn;
       const originalLabel = btn.textContent;
-      
+
       const originalRows = [...rows];
       const originalValues = getFormValues();
 
@@ -538,9 +620,20 @@
           }
         });
         rows = [{ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" }];
-        
+
         renderPreview();
         await new Promise(r => setTimeout(r, 100));
+
+        // Ganti bagian tanda tangan jadi versi mentah (hapus tanggal, kasih garis nama)
+        const sigNode = document.querySelector("#pagesContainer .doc-signature__inner");
+        if (sigNode) {
+          sigNode.innerHTML = `
+            <div style="font-size:14px; margin-bottom: 4px;">Pemilik Hutan Hak</div>
+          `;
+        }
+
+        showLoading("Membuat File Mentah...", "Menyiapkan halaman...");
+        setProgress(5, "Memulai proses...");
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF("p", "pt", "a4");
@@ -549,6 +642,8 @@
 
         for (let i = 0; i < pageNodes.length; i++) {
           if (i > 0) pdf.addPage();
+          const progress = 10 + Math.round(((i + 0.5) / pageNodes.length) * 80);
+          setProgress(progress, `Memproses halaman ${i + 1} dari ${pageNodes.length}...`);
           const clone = pageNodes[i].cloneNode(true);
           Object.assign(clone.style, {
             position: "absolute",
@@ -575,9 +670,12 @@
           pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
         }
 
+        setProgress(95, "Menyimpan file PDF...");
         pdf.save(`Nota-Angkutan-Kosong.pdf`);
+        hideLoading();
       } catch (err) {
         console.error(err);
+        hideLoading();
         alert("Gagal membuat file mentah.");
       } finally {
         Object.keys(originalValues).forEach(key => {
