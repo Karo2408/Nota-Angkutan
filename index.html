@@ -177,7 +177,16 @@
           <!-- TANDA TANGAN -->
           <fieldset class="group">
             <legend>Tanda Tangan</legend>
+
             <div class="field">
+              <label>Tanda Tangan</label>
+              <div style="border: 1px dashed #ccc; border-radius: 8px; overflow: hidden; margin-bottom: 8px; background: #fff;">
+                <canvas id="signaturePad" style="width: 100%; height: 200px; cursor: crosshair; touch-action: none; display: block;"></canvas>
+              </div>
+              <button type="button" id="clearSignatureBtn" class="btn btn--secondary" style="padding: 8px 16px; font-size: 14px; width: max-content;">Hapus Tanda Tangan</button>
+            </div>
+
+            <div class="field" style="margin-top: 16px;">
               <label for="kotaTtd">Kota (untuk baris tanggal tanda tangan)</label>
               <input type="text" id="kotaTtd" name="kotaTtd" placeholder="Contoh: Depok">
             </div>
@@ -190,12 +199,11 @@
           </fieldset>
 
           <!-- ============ PANEL PREVIEW (SEKARANG DI MODAL) ============ -->
-          <div class="form-actions-wrapper">
-            <div class="form-actions">
-              <button type="reset" id="resetBtn" class="btn btn--secondary">Reset Form</button>
-              <button type="button" id="previewBtn" class="btn btn--primary">Lihat & Download PDF</button>
-            </div>
-            <button type="button" id="downloadBlankBtn" class="btn btn--ghost" style="width: 100%; margin-top: 12px; padding: 12px; border-style: dashed;">Download File Mentah (Kosong)</button>
+          <div class="form-actions">
+            <button type="button" id="downloadBlankBtn" class="btn btn--ghost"
+              style="margin-right: auto; border-style: dashed;">Download File Mentah (Kosong)</button>
+            <button type="reset" id="resetBtn" class="btn btn--secondary">Reset Form</button>
+            <button type="button" id="previewBtn" class="btn btn--primary">Lihat & Download PDF</button>
           </div>
           <p id="formError" class="form-error" role="alert" aria-live="polite"></p>
         </form>
@@ -208,6 +216,12 @@
           <div class="confirm-modal__icon">📄</div>
           <h3 class="confirm-modal__title" id="confirmModalTitle">Konfirmasi Download</h3>
           <p class="confirm-modal__desc" id="confirmModalDesc">Apakah Anda yakin ingin mengunduh file ini?</p>
+          
+          <div id="blankRowConfig" style="display: none; margin: 16px 0; text-align: left;">
+            <label for="blankRowCount" style="display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px;">Jumlah Baris Tabel Kosong</label>
+            <input type="number" id="blankRowCount" value="1" min="1" max="20" style="width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; background: #fdfcf9;">
+          </div>
+
           <div class="confirm-modal__actions">
             <button type="button" id="confirmModalCancel" class="btn btn--secondary">Batal</button>
             <button type="button" id="confirmModalOk" class="btn btn--primary">Ya, Download</button>
@@ -411,7 +425,9 @@
               <div class="doc-signature__inner">
                 <div class="doc-signature__date out-tglTtd">&nbsp;</div>
                 <div class="doc-signature__role">Pemilik Hutan Hak</div>
-                <div class="doc-signature__space">&nbsp;</div>
+                <div class="doc-signature__space" style="height: 80px; display: flex; align-items: center; justify-content: center; margin: 4px 0;">
+                  <img class="out-signature" style="max-height: 100%; max-width: 100%; object-fit: contain; display: none;" src="" alt="" />
+                </div>
                 <div class="doc-signature__name out-namaPemilik"></div>
               </div>
             </div>

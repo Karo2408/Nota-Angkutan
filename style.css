@@ -653,6 +653,12 @@ button {
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
   position: relative;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-bottom-info {
+  margin-top: 40px;
 }
 
 .doc-title {

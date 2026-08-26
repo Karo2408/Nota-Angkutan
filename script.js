@@ -10,7 +10,7 @@
   // ---------- STATE ----------
   let rows = []; // { id, jenis, jumlah, volume, keterangan }
   let rowIdCounter = 0;
-
+  let signatureData = null; // Store signature image base64
   const rowsContainer = document.getElementById("rowsContainer");
   const outTbody = document.getElementById("out-tbody");
   const form = document.getElementById("notaForm");
@@ -114,8 +114,8 @@
       : "";
     const totalVolumeStr = volumeIsAllNumeric && totalVolume > 0 ? formatNumber(totalVolume) + " M³" : "";
 
-    const ROWS_PAGE_1 = 6;
-    const ROWS_PAGE_N = 18;
+    const ROWS_PAGE_1 = 12;
+    const ROWS_PAGE_N = 12;
 
     let remainingRows = [...rows];
     // Ensure at least 1 row to not break table visually
@@ -193,6 +193,13 @@
         const tglLine = (kota ? kota + ", " : "") + todayIndo();
         setText(pageNode, ".out-tglTtd", tglLine);
         setText(pageNode, ".out-namaPemilik", data.namaPemilik || "");
+
+        // Signature image
+        const sigImg = pageNode.querySelector(".out-signature");
+        if (sigImg && signatureData) {
+          sigImg.src = signatureData;
+          sigImg.style.display = "block";
+        }
 
         // Catatan
         const catatanNode = pageNode.querySelector(".out-catatan");
@@ -438,10 +445,19 @@
   const loadingBar = document.getElementById("loadingBar");
   const loadingSub = document.getElementById("loadingSub");
 
-  function showConfirm(title, desc) {
+  function showConfirm(title, desc, isBlankDownload = false) {
     return new Promise((resolve) => {
       confirmModalTitle.textContent = title;
       confirmModalDesc.textContent = desc;
+      
+      const blankRowConfig = document.getElementById("blankRowConfig");
+      if (blankRowConfig) {
+        blankRowConfig.style.display = isBlankDownload ? "block" : "none";
+        if (isBlankDownload) {
+          document.getElementById("blankRowCount").value = "1";
+        }
+      }
+
       confirmModal.classList.add("active");
       confirmModal.setAttribute("aria-hidden", "false");
 
@@ -600,7 +616,8 @@
     downloadBlankBtn.addEventListener("click", async () => {
       const confirmed = await showConfirm(
         "Download File Mentah",
-        "File PDF kosong (blangko) tanpa isian akan diunduh. Data yang sudah Anda isi tidak akan hilang."
+        "File PDF kosong (blangko) tanpa isian akan diunduh. Data yang sudah Anda isi tidak akan hilang.",
+        true
       );
       if (!confirmed) return;
 
@@ -619,7 +636,12 @@
             el.value = "";
           }
         });
-        rows = [{ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" }];
+        
+        const numRows = parseInt(document.getElementById("blankRowCount").value, 10) || 1;
+        rows = [];
+        for (let i = 0; i < numRows; i++) {
+          rows.push({ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" });
+        }
 
         renderPreview();
         await new Promise(r => setTimeout(r, 100));
@@ -691,6 +713,90 @@
         btn.disabled = false;
         btn.textContent = originalLabel;
       }
+    });
+  }
+
+  // ---------- SIGNATURE PAD ----------
+  const sigCanvas = document.getElementById('signaturePad');
+  const sigCtx = sigCanvas ? sigCanvas.getContext('2d', { willReadFrequently: true }) : null;
+  let isDrawingSig = false;
+  let sigLastX = 0;
+  let sigLastY = 0;
+
+  if (sigCanvas && sigCtx) {
+    // Resize canvas on load to match display size to prevent stretching
+    function resizeCanvas() {
+      const rect = sigCanvas.parentElement.getBoundingClientRect();
+      sigCanvas.width = rect.width || 400;
+      sigCanvas.height = rect.height || 200;
+      sigCtx.lineWidth = 2;
+      sigCtx.lineCap = 'round';
+      sigCtx.lineJoin = 'round';
+      sigCtx.strokeStyle = '#000000';
+      if (signatureData) {
+        const img = new Image();
+        img.onload = () => sigCtx.drawImage(img, 0, 0);
+        img.src = signatureData;
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100); // init
+
+    function getSigPos(e) {
+      const r = sigCanvas.getBoundingClientRect();
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      const scaleX = sigCanvas.width / r.width;
+      const scaleY = sigCanvas.height / r.height;
+      return {
+        x: (clientX - r.left) * scaleX,
+        y: (clientY - r.top) * scaleY
+      };
+    }
+
+    function drawSig(e) {
+      if (!isDrawingSig) return;
+      e.preventDefault();
+      const pos = getSigPos(e);
+      sigCtx.beginPath();
+      sigCtx.moveTo(sigLastX, sigLastY);
+      sigCtx.lineTo(pos.x, pos.y);
+      sigCtx.stroke();
+      sigLastX = pos.x;
+      sigLastY = pos.y;
+    }
+
+    function saveSig() {
+      // Create a temporary canvas to get a cropped bounding box if needed,
+      // but for simplicity we just save the whole canvas.
+      signatureData = sigCanvas.toDataURL("image/png");
+      renderPreview();
+    }
+
+    sigCanvas.addEventListener('mousedown', (e) => {
+      isDrawingSig = true;
+      const pos = getSigPos(e);
+      sigLastX = pos.x; sigLastY = pos.y;
+    });
+    sigCanvas.addEventListener('mousemove', drawSig);
+    window.addEventListener('mouseup', () => { if (isDrawingSig) { isDrawingSig = false; saveSig(); } });
+
+    sigCanvas.addEventListener('touchstart', (e) => {
+      isDrawingSig = true;
+      const pos = getSigPos(e);
+      sigLastX = pos.x; sigLastY = pos.y;
+    }, { passive: false });
+    sigCanvas.addEventListener('touchmove', drawSig, { passive: false });
+    window.addEventListener('touchend', () => { if (isDrawingSig) { isDrawingSig = false; saveSig(); } });
+    
+    document.getElementById('clearSignatureBtn').addEventListener('click', () => {
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      signatureData = null;
+      renderPreview();
     });
   }
 
