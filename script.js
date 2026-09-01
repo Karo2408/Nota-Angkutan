@@ -190,7 +190,9 @@
         setText(pageNode, ".out-totalVolume", totalVolumeStr);
 
         const kota = (data.kotaTtd || "").trim();
-        const tglLine = (kota ? kota + ", " : "") + todayIndo();
+        const tglValue = (data.tanggalTtd || "").trim();
+        const formattedTgl = tglValue ? formatTanggalIndo(tglValue) : todayIndo();
+        const tglLine = (kota ? kota + ", " : "") + formattedTgl;
         setText(pageNode, ".out-tglTtd", tglLine);
         setText(pageNode, ".out-namaPemilik", data.namaPemilik || "");
 
@@ -225,25 +227,89 @@
   }
 
   // ---------- VALIDASI ----------
+  // Map field id -> label yang ditampilkan di popup
+  const FIELD_LABELS = [
+    { id: "nomor",            label: "Nomor" },
+    { id: "desa",             label: "Desa" },
+    { id: "kecamatan",        label: "Kecamatan" },
+    { id: "kabupaten",        label: "Kabupaten/Kota" },
+    { id: "provinsi",         label: "Provinsi" },
+    { id: "buktiKepemilikan", label: "Bukti Kepemilikan" },
+    { id: "noBuktiKepemilikan", label: "No. Bukti Kepemilikan" },
+    { id: "pengirim",         label: "Pengirim" },
+    { id: "alamatPengirim1",  label: "Alamat Pengirim (baris 1)" },
+    { id: "tempatMuat",       label: "Tempat Muat" },
+    { id: "jenisIdentitas",   label: "Jenis dan Identitas" },
+    { id: "alatAngkut",       label: "Alat Angkut" },
+    { id: "noPol",            label: "NO. POL" },
+    { id: "namaPenerima",     label: "Nama Penerima" },
+    { id: "alamatPenerima1",  label: "Alamat Penerima (baris 1)" },
+    { id: "selama",           label: "Selama" },
+    { id: "dariTanggal",      label: "Dari Tanggal" },
+    { id: "sampaiTanggal",    label: "Sampai Tanggal" },
+    { id: "kotaTtd",          label: "Kota (Tanda Tangan)" },
+    { id: "namaPemilik",      label: "Nama Pemilik Hutan Hak" },
+  ];
+
   function validateForm() {
-    const requiredIds = [
-      "nomor", "desa", "kabupaten", "kecamatan", "provinsi",
-      "pengirim", "namaPenerima", "namaPemilik"
-    ];
     const missing = [];
-    requiredIds.forEach((id) => {
+    FIELD_LABELS.forEach(({ id, label }) => {
       const node = document.getElementById(id);
-      if (node && !node.value.trim()) {
-        missing.push(node.previousElementSibling ? node.previousElementSibling.textContent : id);
-      }
+      if (node && !node.value.trim()) missing.push(label);
+    });
+    const hasRowContent = rows.some(r => r.jenis.trim() || r.jumlah.trim() || r.volume.trim());
+    if (!hasRowContent) missing.push("Rincian Hasil Hutan (min. 1 baris)");
+    return missing;
+  }
+
+  // ---------- VALIDATION POPUP ----------
+  function showValidationPopup(missing) {
+    const existing = document.getElementById("validationPopupOverlay");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "validationPopupOverlay";
+    overlay.className = "validation-popup-overlay";
+
+    const popup = document.createElement("div");
+    popup.className = "validation-popup";
+    popup.setAttribute("role", "alert");
+
+    const header = document.createElement("div");
+    header.className = "validation-popup__header";
+
+    const headerLeft = document.createElement("div");
+    headerLeft.className = "validation-popup__title";
+    headerLeft.innerHTML = `<span class="validation-popup__icon">⚠️</span> Mohon lengkapi data berikut:`;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "validation-popup__close";
+    closeBtn.type = "button";
+    closeBtn.innerHTML = "&#x2715; Tutup";
+    closeBtn.addEventListener("click", () => overlay.remove());
+
+    header.appendChild(headerLeft);
+    header.appendChild(closeBtn);
+
+    const chips = document.createElement("div");
+    chips.className = "validation-popup__chips";
+    missing.forEach(label => {
+      const chip = document.createElement("span");
+      chip.className = "validation-popup__chip";
+      chip.innerHTML = `<span class="validation-popup__chip-x">&#x2715;</span> ${label}`;
+      chips.appendChild(chip);
     });
 
-    const hasRowContent = rows.some(r => r.jenis.trim() || r.jumlah.trim() || r.volume.trim());
-    if (!hasRowContent) {
-      missing.push("Minimal 1 baris Rincian Hasil Hutan harus diisi");
-    }
+    popup.appendChild(header);
+    popup.appendChild(chips);
+    overlay.appendChild(popup);
 
-    return missing;
+    // Close when clicking the backdrop
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
   }
 
   // ---------- MODAL, PREVIEW, & ZOOM ----------
@@ -288,8 +354,7 @@
     formError.textContent = "";
     const missing = validateForm();
     if (missing.length > 0) {
-      formError.textContent = "Mohon lengkapi: " + missing.join(", ");
-      formError.scrollIntoView({ behavior: "smooth", block: "center" });
+      showValidationPopup(missing);
       return;
     }
 
@@ -338,18 +403,6 @@
     renderPreview();
   }
 
-  function removeCheckedRows() {
-    const checked = Array.from(document.querySelectorAll(".row-check-input:checked"))
-      .map(cb => Number(cb.dataset.id));
-    if (checked.length === 0) {
-      if (rows.length > 1) rows.pop();
-    } else {
-      rows = rows.filter(r => !checked.includes(r.id));
-      if (rows.length === 0) rows.push({ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" });
-    }
-    renderRowEditor();
-    renderPreview();
-  }
 
   function renderRowEditor() {
     rowsContainer.innerHTML = "";
@@ -359,17 +412,19 @@
 
       const headerWrap = el("div", "row-item-header");
       const title = el("div", "row-item-title", `Baris ${index + 1}`);
-      const checkWrap = el("div", "row-check");
-      const check = document.createElement("input");
-      check.type = "checkbox";
-      check.className = "row-check-input";
-      check.dataset.id = row.id;
-      check.title = "Pilih untuk dihapus";
-      checkWrap.appendChild(check);
-      const deleteLabel = el("label", "row-delete-label", "Hapus");
-      checkWrap.appendChild(deleteLabel);
+      const deleteBtn = el("button", "row-delete-btn", "Hapus");
+      deleteBtn.type = "button";
+      deleteBtn.title = "Hapus baris ini";
+      deleteBtn.addEventListener("click", () => {
+        rows = rows.filter(r => r.id !== row.id);
+        if (rows.length === 0) {
+          rows.push({ id: ++rowIdCounter, jenis: "", jumlah: "", satuanJumlah: "BTG", volume: "", keterangan: "" });
+        }
+        renderRowEditor();
+        renderPreview();
+      });
       headerWrap.appendChild(title);
-      headerWrap.appendChild(checkWrap);
+      headerWrap.appendChild(deleteBtn);
 
       const jenisWrap = makeRowField(row, "jenis", "text", "Jenis Hasil Hutan", "field-full");
 
@@ -591,6 +646,14 @@
       rows = [];
       rowIdCounter = 0;
       addRow();
+      
+      const sigCnv = document.getElementById('signaturePad');
+      if (sigCnv) {
+        const ctx = sigCnv.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, sigCnv.width, sigCnv.height);
+        signatureData = null;
+      }
+
       renderPreview();
       formError.textContent = "";
     }, 0);
@@ -598,8 +661,13 @@
 
   // ---------- EVENTS ----------
   document.getElementById("addRowBtn").addEventListener("click", () => addRow());
-  document.getElementById("removeRowBtn").addEventListener("click", removeCheckedRows);
-  form.addEventListener("reset", resetAll);
+  form.addEventListener("reset", (e) => {
+    if (!confirm("Apakah Anda yakin ingin mengosongkan semua data form?")) {
+      e.preventDefault();
+      return;
+    }
+    resetAll();
+  });
   form.addEventListener("input", renderPreview);
 
       // Wire up confirm modal to Lanjut Download PDF btn in preview modal

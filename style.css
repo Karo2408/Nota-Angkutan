@@ -121,6 +121,20 @@ button {
   margin: 0 auto;
 }
 
+@media (max-width: 520px) {
+  .app-body {
+    padding: 10px 8px;
+  }
+
+  .form-panel {
+    padding: 14px 14px 18px;
+  }
+
+  .group {
+    padding: 12px 12px 14px;
+  }
+}
+
 .panel {
   background: var(--paper);
   border-radius: var(--radius);
@@ -283,24 +297,21 @@ button {
   letter-spacing: 0.5px;
 }
 
-.row-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.row-check-input {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--danger);
-}
-
-.row-delete-label {
-  font-size: 12px;
+.row-delete-btn {
+  background: rgba(179, 67, 43, 0.1);
   color: var(--danger);
-  cursor: pointer;
+  border: 1px solid rgba(179, 67, 43, 0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.row-delete-btn:hover {
+  background: var(--danger);
+  color: #fff;
 }
 
 .row-field {
@@ -491,6 +502,115 @@ button {
   margin: 10px 0 0;
   min-height: 18px;
 }
+
+/* =========================================================
+   VALIDATION POPUP (MODAL OVERLAY)
+========================================================= */
+.validation-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  animation: overlayFadeIn 0.2s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.validation-popup {
+  background: #ffffff;
+  border: 1px solid rgba(210, 180, 175, 0.6);
+  border-radius: 20px;
+  padding: 0;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: popupIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popupIn {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.validation-popup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px 16px;
+  background: #fff8f7;
+  border-bottom: 1px solid rgba(210, 180, 175, 0.5);
+}
+
+.validation-popup__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c2c2c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.validation-popup__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.validation-popup__close {
+  background: transparent;
+  border: 1.5px solid rgba(179, 67, 43, 0.4);
+  border-radius: 20px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.validation-popup__close:hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.validation-popup__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 20px 22px;
+  background: #ffffff;
+}
+
+.validation-popup__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1.5px solid rgba(200, 110, 90, 0.45);
+  border-radius: 20px;
+  color: #c0422a;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 13px;
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.validation-popup__chip-x {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
 
 /* =========================================================
    MODAL PRATINJAU

@@ -71,7 +71,7 @@
             </div>
 
             <div class="field">
-              <label for="noBuktiKepemilikan">No. Bukti Kepemilikan</label>
+              <label for="noBuktiKepemilikan">No. Bukti Kepemilikan <span class="req">*</span></label>
               <input type="text" id="noBuktiKepemilikan" name="noBuktiKepemilikan">
             </div>
 
@@ -81,7 +81,7 @@
             </div>
 
             <div class="field">
-              <label for="alamatPengirim1">Alamat Pengirim (baris 1)</label>
+              <label for="alamatPengirim1">Alamat Pengirim (baris 1) <span class="req">*</span></label>
               <input type="text" id="alamatPengirim1" name="alamatPengirim1">
             </div>
             <div class="field">
@@ -90,22 +90,22 @@
             </div>
 
             <div class="field">
-              <label for="tempatMuat">Tempat Muat</label>
+              <label for="tempatMuat">Tempat Muat <span class="req">*</span></label>
               <input type="text" id="tempatMuat" name="tempatMuat">
             </div>
 
             <div class="field">
-              <label for="jenisIdentitas">Jenis dan Identitas</label>
+              <label for="jenisIdentitas">Jenis dan Identitas <span class="req">*</span></label>
               <input type="text" id="jenisIdentitas" name="jenisIdentitas">
             </div>
 
             <div class="field-row">
               <div class="field">
-                <label for="alatAngkut">Alat Angkut</label>
+                <label for="alatAngkut">Alat Angkut <span class="req">*</span></label>
                 <input type="text" id="alatAngkut" name="alatAngkut">
               </div>
               <div class="field">
-                <label for="noPol">NO. POL</label>
+                <label for="noPol">NO. POL <span class="req">*</span></label>
                 <input type="text" id="noPol" name="noPol">
               </div>
             </div>
@@ -121,7 +121,7 @@
             </div>
 
             <div class="field">
-              <label for="alamatPenerima1">Alamat Penerima (baris 1)</label>
+              <label for="alamatPenerima1">Alamat Penerima (baris 1) <span class="req">*</span></label>
               <input type="text" id="alamatPenerima1" name="alamatPenerima1">
             </div>
             <div class="field">
@@ -135,17 +135,17 @@
             <legend>Masa Berlaku</legend>
 
             <div class="field">
-              <label for="selama">Selama</label>
+              <label for="selama">Selama <span class="req">*</span></label>
               <input type="text" id="selama" name="selama" placeholder="Contoh: 3 (tiga) hari">
             </div>
 
             <div class="field-row">
               <div class="field">
-                <label for="dariTanggal">Dari Tanggal</label>
+                <label for="dariTanggal">Dari Tanggal <span class="req">*</span></label>
                 <input type="date" id="dariTanggal" name="dariTanggal">
               </div>
               <div class="field">
-                <label for="sampaiTanggal">Sampai Tanggal</label>
+                <label for="sampaiTanggal">Sampai Tanggal <span class="req">*</span></label>
                 <input type="date" id="sampaiTanggal" name="sampaiTanggal">
               </div>
             </div>
@@ -161,7 +161,6 @@
 
             <div class="table-actions">
               <button type="button" id="addRowBtn" class="btn btn--ghost">+ Tambah Baris</button>
-              <button type="button" id="removeRowBtn" class="btn btn--ghost btn--danger">- Hapus Baris</button>
             </div>
           </fieldset>
 
@@ -186,16 +185,21 @@
               <button type="button" id="clearSignatureBtn" class="btn btn--secondary" style="padding: 8px 16px; font-size: 14px; width: max-content;">Hapus Tanda Tangan</button>
             </div>
 
-            <div class="field" style="margin-top: 16px;">
-              <label for="kotaTtd">Kota (untuk baris tanggal tanda tangan)</label>
-              <input type="text" id="kotaTtd" name="kotaTtd" placeholder="Contoh: Depok">
+            <div class="field-row" style="margin-top: 16px;">
+              <div class="field">
+                <label for="kotaTtd">Kota (untuk tanda tangan) <span class="req">*</span></label>
+                <input type="text" id="kotaTtd" name="kotaTtd" placeholder="Contoh: Depok">
+              </div>
+              <div class="field">
+                <label for="tanggalTtd">Tanggal Tanda Tangan <span class="req">*</span></label>
+                <input type="date" id="tanggalTtd" name="tanggalTtd">
+              </div>
             </div>
             <div class="field">
               <label for="namaPemilik">Nama Pemilik Hutan Hak <span class="req">*</span></label>
               <input type="text" id="namaPemilik" name="namaPemilik" required>
+              <small class="hint" style="margin-top: 8px; display: block; color: var(--ink-soft, #666);">Kosongkan tanggal untuk otomatis menggunakan tanggal saat dokumen diunduh.</small>
             </div>
-            <small class="hint">Tanggal pada tanda tangan otomatis terisi sesuai tanggal saat dokumen
-              dibuat/diunduh.</small>
           </fieldset>
 
           <!-- ============ PANEL PREVIEW (SEKARANG DI MODAL) ============ -->
